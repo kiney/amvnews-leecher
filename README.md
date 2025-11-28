@@ -28,7 +28,7 @@ Bedingung: im venv ohne global install auf dem host nutzbar
 
 
 # Tool usage
-das CLI Tool heißt "amvscape"
+das CLI Tool heißt "amvscrape"
 
 amvscrape scrape [n]
   scrape amvnews.ru for new AMVs
@@ -42,14 +42,20 @@ amvscrape download [id]
   lädt das .torrent file für die angegebene AMV ID herunter und legt es in @torrent-files ab
   wenn keine id angegeben wird, werden alle .torrent files mit state 0 heruntergeladen
 
-amvscape torrent [id]
+amvscrape torrent [id]
   send torrent file to torrent client
   sendet das .torrent file für die angegebene AMV ID an den torrent client
   wenn keine id angegeben wird, werden alle .torrent files mit state 1 an den client gesendet
 
-amvscape checklib [path]
+amvscrape checklib [path]
   list den directory content vom angegebenen path
   Alle dateien darin die mit einer fünfstelligen zahl und dann einem punk beginnen
   werden als AMV mit dieser Zahl als ID interpretiert und in der Datenbank als state 3 eingetragen
   (beispiel: 07399.Satsumayu-Between.Dogs.and.Wolves.amvnews.ru.mp4 entspricht id 07399)
   Der angegebene path kann noch weitere videodateien oder anderen Inhalt haben - ignorieren!
+
+amvscrape list [--state N]
+  list database contents
+  zeigt alle AMVs aus der Datenbank in human-readable Format
+  optional: --state N filtert nach einem bestimmten State (0, 1, 2, oder 3)
+  Output: eine Zeile pro AMV mit ID, State und Torrent-Dateiname

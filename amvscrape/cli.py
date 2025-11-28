@@ -9,9 +9,15 @@ from . import config, db, downloader, scraper
 
 def cmd_scrape(args):
     """Scrape amvnews.ru for new AMVs."""
-    print(f"Scraping amvnews.ru (max pages: {args.n or 'all'})...")
-    # TODO: Implement in Phase 2
-    print("Not yet implemented")
+    max_pages = args.n
+    try:
+        new_count = scraper.scrape_all(max_pages=max_pages)
+    except KeyboardInterrupt:
+        print("\n\nScraping interrupted by user.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n\nError during scraping: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def cmd_download(args):
@@ -48,6 +54,61 @@ def cmd_checklib(args):
     print(f"Scanning library at: {args.path}")
     # TODO: Implement in Phase 4
     print("Not yet implemented")
+
+
+def cmd_list(args):
+    """List all AMVs in database."""
+    # Get filter state if specified
+    state_filter = (
+        args.state if hasattr(args, "state") and args.state is not None else None
+    )
+
+    # Fetch from database
+    if state_filter is not None:
+        rows = db.get_by_state(state_filter)
+        print(f"AMVs with state={state_filter}:")
+    else:
+        with db.get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT id, article_url, torrentfile, state FROM amvs ORDER BY CAST(id AS INTEGER) DESC"
+            )
+            rows = cursor.fetchall()
+        print("All AMVs in database:")
+
+    if not rows:
+        print("  (no entries)")
+        return
+
+    # State names for readability
+    state_names = {
+        0: "not collected",
+        1: "torrent ready",
+        2: "sent to client",
+        3: "in collection",
+    }
+
+    # Print each row
+    for row in rows:
+        amv_id = row["id"]
+        article_url = row["article_url"]
+        state = row["state"]
+        state_name = state_names.get(state, f"unknown({state})")
+        torrentfile = row["torrentfile"] or "(none)"
+
+        # Extract ID from URL for verification (id=XXXXX)
+        url_id = "(no url)"
+        if article_url:
+            import re
+
+            match = re.search(r"id=(\d+)", article_url)
+            if match:
+                url_id = match.group(1)
+
+        print(
+            f"  {amv_id:>8} | url_id={url_id:>8} | state={state} ({state_name:15s}) | torrent={torrentfile}"
+        )
+
+    print(f"\nTotal: {len(rows)} AMVs")
 
 
 def main():
@@ -97,6 +158,16 @@ def main():
     )
     parser_checklib.add_argument("path", help="Path to library directory")
     parser_checklib.set_defaults(func=cmd_checklib)
+
+    # list command
+    parser_list = subparsers.add_parser("list", help="List all AMVs in database")
+    parser_list.add_argument(
+        "--state",
+        type=int,
+        choices=[0, 1, 2, 3],
+        help="Filter by state (0=not collected, 1=torrent ready, 2=sent to client, 3=in collection)",
+    )
+    parser_list.set_defaults(func=cmd_list)
 
     # Parse arguments
     args = parser.parse_args()

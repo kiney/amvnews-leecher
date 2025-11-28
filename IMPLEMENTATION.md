@@ -78,9 +78,10 @@ amvnews-leecher/
 - `download_all_pending()` - Alle mit state=0
 
 ### 3.5 `cli.py`
-- Subcommands: `scrape`, `download`, `torrent`, `checklib`
+- Subcommands: `scrape`, `download`, `torrent`, `checklib`, `list`
 - `torrent`: Ruft `deluge-gtk {torrent_path}` per subprocess auf
 - `checklib`: Scannt Verzeichnis mit Regex `^(\d{5})\.`
+- `list`: Zeigt alle AMVs aus DB (optional filterbar nach state)
 
 ### 3.6 `__main__.py`
 - Entry point: `cli.main()`
@@ -219,10 +220,43 @@ Getestet:
 - ✅ Datenbank wird initialisiert
 - ✅ DB-Funktionen (insert, update, get) arbeiten korrekt
 
+### Phase 2: ✅ ABGESCHLOSSEN
+
+Implementiert:
+- `scraper.py` komplett
+  - `scrape_listing_page()` - Parsed Pagination und extrahiert AMV-Links
+  - `get_total_pages()` - Ermittelt Gesamtzahl der Seiten
+  - `scrape_all()` - Hauptschleife mit Rate-Limiting
+- `cli.py` - `cmd_scrape()` verdrahtet
+- BeautifulSoup + lxml HTML-Parsing
+- Regex für URL-Extraktion (IDs mit/ohne führende Nullen)
+- Duplikat-Handling (INSERT OR IGNORE)
+- 1s Delay zwischen Requests
+
+Getestet:
+- ✅ `amvscrape scrape 1` - Scraped erste Seite (31 AMVs gefunden)
+- ✅ `amvscrape scrape 3` - Scraped 3 Seiten (32 neue AMVs)
+- ✅ Datenbank enthält Einträge mit state=0
+- ✅ IDs in verschiedenen Formaten korrekt gespeichert
+- ✅ Bereits bekannte AMVs werden übersprungen
+
+### Bonus: List-Command
+
+Implementiert:
+- `amvscrape list` - Zeigt alle DB-Einträge sortiert nach ID
+- `amvscrape list --state N` - Filtert nach State
+- Human-readable Output mit State-Namen
+- Sortierung nach ID (numerisch)
+
+Getestet:
+- ✅ `amvscrape list` zeigt alle 64 Einträge
+- ✅ `amvscrape list --state 0` zeigt nur 63 AMVs mit state=0
+- ✅ `amvscrape list --state 1` zeigt 1 AMV mit state=1
+
 ### Nächste Schritte
 
-Phase 2: Scraping implementieren
+Phase 3: Download-Funktionalität implementieren
 
 ---
 
-*Version 1.2 - Phase 1 Complete*
+*Version 1.4 - Phase 2 Complete + List Command*
