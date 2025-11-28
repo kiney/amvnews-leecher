@@ -159,14 +159,25 @@ def cmd_checklib(args):
     print(f"Found {len(found_ids)} AMV files in library")
 
     # Mark them as collected (state=3) in database
+    # Try both with and without leading zeros (e.g., "09938" and "9938")
     marked_count = 0
     for amv_id in found_ids:
+        # Try exact match first
         if db.id_exists(amv_id):
             db.update_state(amv_id, 3)
             marked_count += 1
             print(f"  {amv_id} → marked as collected")
         else:
-            print(f"  {amv_id} → not in database (skipped)")
+            # Try without leading zeros
+            amv_id_stripped = amv_id.lstrip("0") or "0"
+            if amv_id_stripped != amv_id and db.id_exists(amv_id_stripped):
+                db.update_state(amv_id_stripped, 3)
+                marked_count += 1
+                print(
+                    f"  {amv_id} → marked as collected (matched as {amv_id_stripped})"
+                )
+            else:
+                print(f"  {amv_id} → not in database (skipped)")
 
     print(f"\n✓ Marked {marked_count}/{len(found_ids)} AMVs as collected (state=3)")
 
