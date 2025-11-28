@@ -200,10 +200,29 @@ amvscrape torrent
 
 ---
 
-## 8. Nächste Schritte
+## 8. Status
 
-Nach Review → Phase 1 implementieren.
+### Phase 1: ✅ ABGESCHLOSSEN
+
+Implementiert:
+- `pyproject.toml` mit Dependencies
+- `amvscrape/` Package-Struktur
+- `config.py` - Alle Konstanten definiert
+- `db.py` - Vollständige DB-Funktionalität
+- `cli.py` - CLI mit allen 4 Subcommands (Stubs)
+- `__main__.py` - Entry Point
+- `scraper.py`, `downloader.py` - Stubs für spätere Phasen
+
+Getestet:
+- ✅ `python -m amvscrape --help` funktioniert
+- ✅ Alle Subcommands zeigen Help
+- ✅ Datenbank wird initialisiert
+- ✅ DB-Funktionen (insert, update, get) arbeiten korrekt
+
+### Nächste Schritte
+
+Phase 2: Scraping implementieren
 
 ---
 
-*Version 1.1 - Simplified*
+*Version 1.2 - Phase 1 Complete*
