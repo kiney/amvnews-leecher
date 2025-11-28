@@ -280,11 +280,31 @@ Getestet:
 - ✅ Rate-Limiting durch config.REQUEST_DELAY
 - ✅ Größenerkennung funktioniert korrekt (nicht mehr 0.00 MB)
 
+### Phase 4: ✅ ABGESCHLOSSEN
+
+Implementiert:
+- `checklib` Funktionalität direkt in `cli.py`
+  - Scannt Verzeichnis nach Dateien mit Pattern `^\d{5}\.`
+  - Extrahiert AMV-ID aus Dateinamen
+  - Markiert bekannte IDs als state=3 (in collection)
+- Error-Handling für ungültige Pfade
+- Ignoriert Dateien ohne 5-stellige ID am Anfang
+- Überschreibt vorherigen State (auch wenn torrent ready war)
+
+Getestet:
+- ✅ Scan gegen produktive Sammlung (943 AMVs gefunden)
+- ✅ AMV mit ID 05289 korrekt als state=3 markiert
+- ✅ AMV mit ID 04937 (state=0) → state=3
+- ✅ AMV mit ID 05695 (state=1) → state=3 (überschrieben)
+- ✅ Ungültiger Pfad → Error-Message
+- ✅ Leeres Verzeichnis → "No AMV files found"
+- ✅ Dateien ohne 5-stellige ID werden ignoriert
+- ✅ IDs nicht in DB werden als "skipped" gemeldet
+
 ### Nächste Schritte
 
-Phase 4: checklib-Funktionalität implementieren
 Phase 5: Torrent-Client Integration (deluge-gtk)
 
 ---
 
-*Version 1.6 - Phase 3 Complete (Size Detection Fixed)*
+*Version 1.7 - Phase 4 Complete*

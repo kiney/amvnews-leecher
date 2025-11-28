@@ -57,8 +57,37 @@ def cmd_checklib(args):
         sys.exit(1)
 
     print(f"Scanning library at: {args.path}")
-    # TODO: Implement in Phase 4
-    print("Not yet implemented")
+
+    # Scan directory for video files starting with 5-digit IDs
+    import re
+
+    pattern = re.compile(r"^(\d{5})\.")
+    found_ids = []
+
+    for file_path in path.iterdir():
+        if file_path.is_file():
+            match = pattern.match(file_path.name)
+            if match:
+                amv_id = match.group(1)
+                found_ids.append(amv_id)
+
+    if not found_ids:
+        print("No AMV files found in library (no files starting with 5-digit ID)")
+        return
+
+    print(f"Found {len(found_ids)} AMV files in library")
+
+    # Mark them as collected (state=3) in database
+    marked_count = 0
+    for amv_id in found_ids:
+        if db.id_exists(amv_id):
+            db.update_state(amv_id, 3)
+            marked_count += 1
+            print(f"  {amv_id} → marked as collected")
+        else:
+            print(f"  {amv_id} → not in database (skipped)")
+
+    print(f"\n✓ Marked {marked_count}/{len(found_ids)} AMVs as collected (state=3)")
 
 
 def cmd_list(args):
