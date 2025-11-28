@@ -35,6 +35,61 @@ def cmd_download(args):
         print(f"\n✓ Done! {count} torrents downloaded.")
 
 
+def parse_id_range(range_spec):
+    """
+    Parse ID range specification.
+
+    Supported formats:
+    - Single ID: "12345"
+    - Range: "8000-9000"
+    - Greater than: ">9000"
+    - Less than: "<500"
+
+    Returns list of IDs from database matching the spec.
+    """
+    import re
+
+    # Check for range: 8000-9000
+    if "-" in range_spec and not range_spec.startswith("-"):
+        parts = range_spec.split("-")
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            start = int(parts[0])
+            end = int(parts[1])
+            with db.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT id FROM amvs WHERE CAST(id AS INTEGER) >= ? AND CAST(id AS INTEGER) <= ? AND state=1",
+                    (start, end),
+                )
+                return [row["id"] for row in cursor.fetchall()]
+
+    # Check for greater than: >9000
+    if range_spec.startswith(">"):
+        value = range_spec[1:].strip()
+        if value.isdigit():
+            threshold = int(value)
+            with db.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT id FROM amvs WHERE CAST(id AS INTEGER) > ? AND state=1",
+                    (threshold,),
+                )
+                return [row["id"] for row in cursor.fetchall()]
+
+    # Check for less than: <500
+    if range_spec.startswith("<"):
+        value = range_spec[1:].strip()
+        if value.isdigit():
+            threshold = int(value)
+            with db.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT id FROM amvs WHERE CAST(id AS INTEGER) < ? AND state=1",
+                    (threshold,),
+                )
+                return [row["id"] for row in cursor.fetchall()]
+
+    # Single ID
+    return [range_spec]
+
+
 def cmd_torrent(args):
     """Send torrent files to deluge-gtk."""
     import subprocess
@@ -43,11 +98,21 @@ def cmd_torrent(args):
     processed_ids = []
 
     if args.ids:
-        # One or more IDs provided - use these regardless of state
-        input_ids = args.ids
-        print(
-            f"Sending torrents for {len(input_ids)} specified AMV(s) to deluge-gtk..."
-        )
+        # Parse IDs and ranges
+        all_ids = []
+        for spec in args.ids:
+            parsed = parse_id_range(spec)
+            all_ids.extend(parsed)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        input_ids = []
+        for amv_id in all_ids:
+            if amv_id not in seen:
+                seen.add(amv_id)
+                input_ids.append(amv_id)
+
+        print(f"Sending torrents for {len(input_ids)} AMV(s) to deluge-gtk...")
 
         for amv_id in input_ids:
             entry = db.get_by_id(amv_id)
@@ -276,7 +341,8 @@ def main():
     parser_torrent.add_argument(
         "ids",
         nargs="*",
-        help="AMV ID(s) to send (optional, default: all with state=1). Multiple IDs can be specified.",
+        help="AMV ID(s) or ranges to send (optional, default: all with state=1). "
+        "Formats: '12345', '8000-9000', '>9000', '<500'. Multiple can be specified.",
     )
     parser_torrent.set_defaults(func=cmd_torrent)
 

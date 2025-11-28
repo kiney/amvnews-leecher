@@ -51,12 +51,26 @@ amvscrape download
 ### Send to torrent client
 
 ```bash
-# Send specific AMVs (recommended: multiple at once = fewer dialogs)
+# Send specific AMVs
 amvscrape torrent 12807 12806 12805
+
+# Send by range (inclusive)
+amvscrape torrent 8000-9000
+
+# Send all above a threshold
+amvscrape torrent ">10000"
+
+# Send all below a threshold
+amvscrape torrent "<500"
+
+# Combine multiple specs
+amvscrape torrent "1000-2000" ">12000" 5555
 
 # Send all ready torrents (state=1)
 amvscrape torrent
 ```
+
+**Note:** Deluge-gtk can't handle thousands of torrents at once. Use ranges to batch them in reasonable chunks (e.g., 100-500 at a time).
 
 ### Mark existing collection
 
@@ -108,6 +122,7 @@ amvscrape list
 - Stored as-is in database (TEXT, not INTEGER)
 - When multiple torrent qualities exist, largest is selected automatically
 - Torrent files saved to `torrent-files/` as `{id}.torrent`
+- Range queries use numeric comparison (leading zeros are handled automatically)
 
 ## Database
 
