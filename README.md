@@ -1,64 +1,127 @@
-Tool to scrape torrent files for AMVs from amvnews.ru
+# amvscrape
 
-vibe coded for personal use, docs if you can call it that are in german for now.
+CLI tool to scrape and download AMV torrents from amvnews.ru
 
-# Intro
-die Seite amvnews.ru stellt regelmässig AMVs (Anime Music Videos) zur Verfügung. Die AMVs haben
-eindeutige fünfstellige numerische IDs.
-Zur Stuktur der Seite siehe @scrape-hints.md.
+## What it does
 
+- Scrapes AMV metadata from amvnews.ru (423+ pages, ~4000+ videos)
+- Downloads .torrent files
+- Tracks your collection status in SQLite
+- Integrates with deluge-gtk
 
-# Architecture
-command line tool das eine sqlite database für metadaten nutzt.
-Die datenbank enthält eine einzelne Tabelle:
-  id (primary key) # dies entspricht der amvnew id. speichern wir als text EXAKT wie im original, weil es mit und ohne führende nullen zu geben scheint
-  article url
-  torrentfile # der Dateiname des .torrent files, NICHT der fertigen Dateien
-  state # ein flag mit drei zuständen:
-    0: noch nicht in der Sammlung
-    1: torrent file vorhanden
-    2: an torrent client übergeben
-    3: bereits in der sammlung
+## Installation
 
-Das tool soll mehrere "Phasen" oder subcommands bieten die relativ unabhängig voneinander
-arbeiten. Ihre Funktion wird im usage abschnitt weiter erläutert.
+```bash
+git clone <repo>
+cd amvnews-leecher
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -e .
+```
 
-Libraries wie beautifulsoup4, requests, sqlite3 dürfen natürlich verwendet werden.
-Bedingung: im venv ohne global install auf dem host nutzbar
+## Requirements
 
+- Python 3.8+
+- deluge-gtk (for sending torrents to client)
 
-# Tool usage
-das CLI Tool heißt "amvscrape"
+**Note:** Currently only deluge-gtk is supported as torrent client. If you need a different client, you'll have to code it yourself.
 
-amvscrape scrape [n]
-  scrape amvnews.ru for new AMVs
-  durchsucht nacheinander die paginierte new videos section von amvnews.ru
-  Der optionale parameter n gibt die maximale Anzahl der zu scrapenden Seiten an, fehlt er
-  wird ALLES gescraped.
-  Es wird jeweils nur die article URL in die sqlite datenbank geschrieben.
+## Usage
 
-amvscrape download [id]
-  download torrent files for new AMVs
-  lädt das .torrent file für die angegebene AMV ID herunter und legt es in @torrent-files ab
-  wenn keine id angegeben wird, werden alle .torrent files mit state 0 heruntergeladen
+### Scrape AMV metadata
 
-amvscrape torrent [id1 id2 id3 ...]
-  send torrent files to torrent client (deluge-gtk)
-  sendet die .torrent files für die angegebenen AMV IDs an deluge-gtk
-  mehrere IDs können auf einmal übergeben werden (empfohlen um GUI-Dialoge zu reduzieren)
-  wenn keine IDs angegeben werden, werden alle .torrent files mit state 1 an den client gesendet
-  WICHTIG: bei händischer ID-Angabe wird der state ignoriert, die IDs werden immer verwendet
-  nach erfolgreichem Senden wird der state auf 2 (sent to client) gesetzt
+```bash
+# Scrape first 10 pages
+amvscrape scrape 10
 
-amvscrape checklib [path]
-  list den directory content vom angegebenen path
-  Alle dateien darin die mit einer fünfstelligen zahl und dann einem punk beginnen
-  werden als AMV mit dieser Zahl als ID interpretiert und in der Datenbank als state 3 eingetragen
-  (beispiel: 07399.Satsumayu-Between.Dogs.and.Wolves.amvnews.ru.mp4 entspricht id 07399)
-  Der angegebene path kann noch weitere videodateien oder anderen Inhalt haben - ignorieren!
+# Scrape everything (takes a while)
+amvscrape scrape
+```
 
-amvscrape list [--state N]
-  list database contents
-  zeigt alle AMVs aus der Datenbank in human-readable Format
-  optional: --state N filtert nach einem bestimmten State (0, 1, 2, oder 3)
-  Output: eine Zeile pro AMV mit ID, State und Torrent-Dateiname
+### Download torrent files
+
+```bash
+# Download specific AMV
+amvscrape download 12807
+
+# Download all pending (state=0)
+amvscrape download
+```
+
+### Send to torrent client
+
+```bash
+# Send specific AMVs (recommended: multiple at once = fewer dialogs)
+amvscrape torrent 12807 12806 12805
+
+# Send all ready torrents (state=1)
+amvscrape torrent
+```
+
+### Mark existing collection
+
+```bash
+# Scan directory and mark AMVs as collected (state=3)
+# Expects files named: 12345.Title.mp4 (5-digit ID at start)
+amvscrape checklib /path/to/your/amv/collection
+```
+
+### List database
+
+```bash
+# Show all AMVs
+amvscrape list
+
+# Filter by state
+amvscrape list --state 1
+```
+
+## States
+
+- `0` - Not collected (scraped, no torrent yet)
+- `1` - Torrent ready (downloaded, not sent to client)
+- `2` - Sent to client (torrent added to deluge)
+- `3` - In collection (video file exists locally)
+
+## Typical workflow
+
+```bash
+# 1. Scrape new AMVs
+amvscrape scrape 5
+
+# 2. Mark what you already have
+amvscrape checklib /path/to/collection
+
+# 3. Download missing torrents
+amvscrape download
+
+# 4. Send to deluge
+amvscrape torrent
+
+# 5. Check status
+amvscrape list
+```
+
+## Notes
+
+- AMV IDs may have leading zeros (e.g., "07399" or "12807")
+- Stored as-is in database (TEXT, not INTEGER)
+- When multiple torrent qualities exist, largest is selected automatically
+- Torrent files saved to `torrent-files/` as `{id}.torrent`
+
+## Database
+
+SQLite database (`amvscrape.db`) with single table:
+
+```sql
+CREATE TABLE amvs (
+    id TEXT PRIMARY KEY,      -- AMV ID from amvnews.ru
+    article_url TEXT,          -- Full article URL
+    torrentfile TEXT,          -- Filename of .torrent
+    state INTEGER              -- 0-3 (see States above)
+);
+```
+
+## License
+
+WTFPL - See [LICENSE](LICENSE)
