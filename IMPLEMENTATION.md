@@ -301,10 +301,47 @@ Getestet:
 - ✅ Dateien ohne 5-stellige ID werden ignoriert
 - ✅ IDs nicht in DB werden als "skipped" gemeldet
 
+### Phase 5: ✅ ABGESCHLOSSEN
+
+Implementiert:
+- `cmd_torrent()` in `cli.py`
+  - Unterstützt mehrere IDs gleichzeitig: `amvscrape torrent id1 id2 id3 ...`
+  - Ohne IDs: Sendet alle AMVs mit state=1
+  - Mit IDs: Ignoriert State, sendet angegebene IDs
+  - Alle Torrents werden in EINEM deluge-gtk Aufruf übergeben (weniger GUI-Dialoge)
+  - Absolute Pfade (required by deluge-gtk)
+  - DB-Update: State 1→2 nach erfolgreichem Senden
+- Error-Handling:
+  - deluge-gtk nicht gefunden
+  - Torrent-Dateien fehlen
+  - IDs nicht in DB
+- README aktualisiert mit Multi-ID Syntax
+
+Getestet:
+- ✅ Dry-run Test mit 3 IDs: Korrekte absolute Pfade generiert
+- ✅ Help-Text zeigt Multi-ID Unterstützung
+- ✅ Command-Konstruktion: `deluge-gtk /abs/path1.torrent /abs/path2.torrent ...`
+- ✅ Logik für state=1 Batch-Modus
+- ✅ Logik für spezifische IDs (State-unabhängig)
+- ✅ `amvscrape torrent 12805 12807` - 2 IDs erfolgreich gesendet, state→2
+- ✅ `amvscrape torrent 12798` - Einzelne ID funktioniert
+- ✅ `amvscrape torrent 99999` - Error-Handling für nicht existierende ID
+- ✅ Bug-Fix: Endlosschleife durch Liste-während-Iteration behoben
+
+Bug-Fix:
+- Problem: `amv_ids = args.ids` + später `amv_ids.append()` führte zu Endlosschleife
+- Lösung: Separate `input_ids` und `processed_ids` Listen
+
+Hinweis:
+- Dry-run Skript verfügbar: `/tmp/test_torrent_dry.py`
+
 ### Nächste Schritte
 
-Phase 5: Torrent-Client Integration (deluge-gtk)
+Alle Haupt-Phasen abgeschlossen! Optionale Erweiterungen:
+- Error-Recovery für fehlgeschlagene Downloads
+- Progress-Bars für lange Scraping-Operationen
+- Verbose/Debug-Modus
 
 ---
 
-*Version 1.7 - Phase 4 Complete*
+*Version 1.9 - Phase 5 Complete & Tested (Infinite Loop Bug Fixed)*

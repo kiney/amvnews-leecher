@@ -42,10 +42,13 @@ amvscrape download [id]
   lädt das .torrent file für die angegebene AMV ID herunter und legt es in @torrent-files ab
   wenn keine id angegeben wird, werden alle .torrent files mit state 0 heruntergeladen
 
-amvscrape torrent [id]
-  send torrent file to torrent client
-  sendet das .torrent file für die angegebene AMV ID an den torrent client
-  wenn keine id angegeben wird, werden alle .torrent files mit state 1 an den client gesendet
+amvscrape torrent [id1 id2 id3 ...]
+  send torrent files to torrent client (deluge-gtk)
+  sendet die .torrent files für die angegebenen AMV IDs an deluge-gtk
+  mehrere IDs können auf einmal übergeben werden (empfohlen um GUI-Dialoge zu reduzieren)
+  wenn keine IDs angegeben werden, werden alle .torrent files mit state 1 an den client gesendet
+  WICHTIG: bei händischer ID-Angabe wird der state ignoriert, die IDs werden immer verwendet
+  nach erfolgreichem Senden wird der state auf 2 (sent to client) gesetzt
 
 amvscrape checklib [path]
   list den directory content vom angegebenen path

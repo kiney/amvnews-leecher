@@ -37,12 +37,93 @@ def cmd_download(args):
 
 def cmd_torrent(args):
     """Send torrent files to deluge-gtk."""
-    if args.id:
-        print(f"Sending torrent for AMV ID {args.id} to deluge-gtk...")
+    import subprocess
+
+    torrent_files = []
+    processed_ids = []
+
+    if args.ids:
+        # One or more IDs provided - use these regardless of state
+        input_ids = args.ids
+        print(
+            f"Sending torrents for {len(input_ids)} specified AMV(s) to deluge-gtk..."
+        )
+
+        for amv_id in input_ids:
+            entry = db.get_by_id(amv_id)
+            if not entry:
+                print(f"  {amv_id} → not in database (skipped)")
+                continue
+
+            torrentfile = entry["torrentfile"]
+            if not torrentfile:
+                print(f"  {amv_id} → no torrent file available (skipped)")
+                continue
+
+            torrent_path = config.TORRENT_DIR / torrentfile
+            if not torrent_path.exists():
+                print(f"  {amv_id} → torrent file not found: {torrentfile}")
+                continue
+
+            torrent_files.append(torrent_path)
+            processed_ids.append(amv_id)
+            print(f"  {amv_id} → {torrentfile}")
     else:
-        print("Sending all pending torrents to deluge-gtk...")
-    # TODO: Implement in Phase 5
-    print("Not yet implemented")
+        # No IDs provided - get all with state=1 (torrent ready)
+        print("Sending all pending torrents (state=1) to deluge-gtk...")
+
+        pending = db.get_by_state(1)
+        if not pending:
+            print("No torrents ready to send (no AMVs with state=1)")
+            return
+
+        print(f"Found {len(pending)} torrent(s) ready to send")
+
+        for entry in pending:
+            amv_id = entry["id"]
+            torrentfile = entry["torrentfile"]
+
+            if not torrentfile:
+                print(f"  {amv_id} → no torrent file (skipped)")
+                continue
+
+            torrent_path = config.TORRENT_DIR / torrentfile
+            if not torrent_path.exists():
+                print(f"  {amv_id} → file not found: {torrentfile}")
+                continue
+
+            torrent_files.append(torrent_path)
+            processed_ids.append(amv_id)
+            print(f"  {amv_id} → {torrentfile}")
+
+    if not torrent_files:
+        print("\nNo valid torrent files to send")
+        return
+
+    # Convert to absolute paths (required by deluge-gtk)
+    abs_paths = [str(p.absolute()) for p in torrent_files]
+
+    print(f"\nCalling deluge-gtk with {len(abs_paths)} torrent file(s)...")
+
+    try:
+        # Call deluge-gtk with all torrent files at once
+        cmd = [config.TORRENT_CLIENT_CMD] + abs_paths
+        subprocess.run(cmd, check=True)
+
+        # Update database: set state=2 for all sent torrents
+        for amv_id in processed_ids:
+            db.update_state(amv_id, 2)
+
+        print(f"✓ Sent {len(torrent_files)} torrent(s) to deluge-gtk")
+        print(f"✓ Updated {len(processed_ids)} AMV(s) to state=2 (sent to client)")
+
+    except subprocess.CalledProcessError as e:
+        print(f"\n✗ Error calling deluge-gtk: {e}", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"\n✗ Error: {config.TORRENT_CLIENT_CMD} not found", file=sys.stderr)
+        print("Make sure deluge-gtk is installed on your system", file=sys.stderr)
+        sys.exit(1)
 
 
 def cmd_checklib(args):
@@ -182,7 +263,9 @@ def main():
         "torrent", help="Send torrent files to deluge-gtk"
     )
     parser_torrent.add_argument(
-        "id", nargs="?", help="AMV ID to send (optional, default: all with state=1)"
+        "ids",
+        nargs="*",
+        help="AMV ID(s) to send (optional, default: all with state=1). Multiple IDs can be specified.",
     )
     parser_torrent.set_defaults(func=cmd_torrent)
 
