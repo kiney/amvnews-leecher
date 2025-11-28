@@ -253,10 +253,38 @@ Getestet:
 - ✅ `amvscrape list --state 0` zeigt nur 63 AMVs mit state=0
 - ✅ `amvscrape list --state 1` zeigt 1 AMV mit state=1
 
+### Phase 3: ✅ ABGESCHLOSSEN
+
+Implementiert:
+- `downloader.py` komplett
+  - `parse_download_options()` - Parsed Artikel-Seite für Torrent-Links
+  - `extract_size_mb()` - Extrahiert Dateigröße aus `<span class="rating-text">` (Mb/Gb/Мб/Гб)
+  - `select_best_torrent()` - Wählt größtes Torrent (beste Qualität)
+  - `download_torrent()` - Lädt .torrent Datei herunter
+  - `download_for_amv()` - Komplett-Workflow für einzelnen AMV
+  - `download_all_pending()` - Batch-Download für alle state=0
+- `cli.py` - `cmd_download()` verdrahtet
+  - Einzelner AMV: `amvscrape download {id}`
+  - Alle pending: `amvscrape download`
+- Torrent-Dateien werden als `{id}.torrent` gespeichert
+- DB-Update: State 0→1 und torrentfile gesetzt
+- Unterstützt russische Größenangaben (Мб, Гб)
+
+Getestet:
+- ✅ `amvscrape download 12807` - Einzelne Option (141.08 MB) korrekt erkannt
+- ✅ `amvscrape download 12791` - Zwei Optionen (42.56 MB, 394.2 MB) → größere gewählt
+- ✅ `amvscrape download 12671` - Zwei Optionen (140.99 MB, 159.64 MB) → größere gewählt
+- ✅ `amvscrape download` - Batch-Download für 30 AMVs erfolgreich
+- ✅ Alle Torrents in `torrent-files/` gespeichert
+- ✅ DB korrekt aktualisiert (state=1, torrentfile gesetzt)
+- ✅ Rate-Limiting durch config.REQUEST_DELAY
+- ✅ Größenerkennung funktioniert korrekt (nicht mehr 0.00 MB)
+
 ### Nächste Schritte
 
-Phase 3: Download-Funktionalität implementieren
+Phase 4: checklib-Funktionalität implementieren
+Phase 5: Torrent-Client Integration (deluge-gtk)
 
 ---
 
-*Version 1.4 - Phase 2 Complete + List Command*
+*Version 1.6 - Phase 3 Complete (Size Detection Fixed)*

@@ -24,10 +24,15 @@ def cmd_download(args):
     """Download torrent files for AMVs."""
     if args.id:
         print(f"Downloading torrent for AMV ID: {args.id}")
+        if downloader.download_for_amv(args.id):
+            print(f"\n✓ Torrent for AMV {args.id} downloaded successfully")
+        else:
+            print(f"\n✗ Failed to download torrent for AMV {args.id}")
+            sys.exit(1)
     else:
         print("Downloading torrents for all pending AMVs...")
-    # TODO: Implement in Phase 3
-    print("Not yet implemented")
+        count = downloader.download_all_pending()
+        print(f"\n✓ Done! {count} torrents downloaded.")
 
 
 def cmd_torrent(args):
