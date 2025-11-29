@@ -72,6 +72,8 @@ amvscrape torrent
 
 **Note:** Deluge-gtk can't handle thousands of torrents at once. Use ranges to batch them in reasonable chunks (e.g., 100-500 at a time).
 
+⚠️ **Important:** The amvnews.ru tracker will block clients that make too many announce requests. Configure your torrent client's queue settings carefully to avoid being blocked.
+
 ### Mark existing collection
 
 ```bash
